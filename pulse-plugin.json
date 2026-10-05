@@ -1,7 +1,7 @@
 {
   "id": "itmo",
   "name": "my.itmo",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "pulse": ">=1.0",
   "description": "Расписание ИТМО: вход через ITMO.ID в браузере, неделя по дням, команды для агентов",
   "permissions": ["signals:create", "network"],

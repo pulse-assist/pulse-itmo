@@ -60,7 +60,8 @@ class MyItmo:
         try:
             tokens = self.ids.exchange(code, pending["verifier"])
         except SessionExpired as exc:
-            raise AuthError("Код из адреса устарел (он действует около минуты) — откройте id.itmo.ru и войдите ещё раз") from exc
+            raise AuthError(f"ITMO.ID не принял код ({exc.detail}). Код одноразовый и действует около минуты — "
+                            "откройте id.itmo.ru и войдите ещё раз") from exc
         self.store.update(tokens=tokens.to_dict(), pending=None, expired_signal=None, user=self._user(tokens))
         self._cache.clear()
         return self.status()

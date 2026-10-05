@@ -46,7 +46,7 @@ class Fake:
             form = parse_qs(request.content.decode())
             grant = form["grant_type"][0]
             if grant == "authorization_code" and form["code"][0] != "good-code":
-                return httpx.Response(400, json={"error": "invalid_grant"})
+                return httpx.Response(400, json={"error": "invalid_grant", "error_description": "Code not valid"})
             if grant == "refresh_token" and not self.refresh_ok:
                 return httpx.Response(400, json={"error": "invalid_grant"})
             self.issued += 1
@@ -77,18 +77,19 @@ def setup(tmp_path, monkeypatch):
 def login(http, itmo) -> dict:
     url = http.post("/login/start").json()["url"]
     state = parse_qs(urlsplit(url).query)["state"][0]
-    return http.post("/login/finish", json={"url": f"https://my.itmo.ru/login/callback?state={state}&session_state=x&code=good-code"})
+    return http.post("/login/finish", json={"url": f"https://my.itmo.ru/robots.txt?state={state}&session_state=x&code=good-code"})
 
 
 def test_authorize_url_and_callback():
     verifier, challenge = pkce_pair()
     query = parse_qs(urlsplit(authorize_url("st", challenge)).query)
     assert query["client_id"] == ["student-personal-cabinet"] and query["code_challenge_method"] == ["S256"]
-    assert query["redirect_uri"] == ["https://my.itmo.ru/login/callback"] and len(verifier) > 43
-    assert parse_callback(" https://my.itmo.ru/login/callback?state=st&code=c1 ") == ("c1", "st")
+    assert query["redirect_uri"] == ["https://my.itmo.ru/robots.txt"] and len(verifier) > 43
+    assert parse_callback(" https://my.itmo.ru/robots.txt?state=st&code=c1 ") == ("c1", "st")
     for bad, needle in [("https://example.com/?code=1&state=2", "не тот адрес"),
-                        ("https://my.itmo.ru/login/callback?state=st", "нет кода"),
-                        ("https://my.itmo.ru/login/callback?error=access_denied", "ошибку")]:
+                        ("https://my.itmo.ru/robots.txt?state=st", "нет кода"),
+                        ("http://my.itmo.ru/robots.txt?state=st&code=c1", "не тот адрес"),
+                        ("https://my.itmo.ru/robots.txt?error=access_denied", "ошибку")]:
         with pytest.raises(AuthError, match=needle):
             parse_callback(bad)
     assert claims(jwt({"isu": 1})) == {"isu": 1} and claims("мусор") == {}
@@ -128,12 +129,13 @@ def test_login_schedule_and_refresh(setup):
 def test_login_errors(setup):
     http, itmo, *_ = setup
     http.post("/login/start")
-    stale = http.post("/login/finish", json={"url": "https://my.itmo.ru/login/callback?state=другой&code=good-code"})
+    stale = http.post("/login/finish", json={"url": "https://my.itmo.ru/robots.txt?state=другой&code=good-code"})
     assert stale.status_code == 400 and "устаревшего входа" in stale.json()["detail"]
     url = http.post("/login/start").json()["url"]
     state = parse_qs(urlsplit(url).query)["state"][0]
-    expired = http.post("/login/finish", json={"url": f"https://my.itmo.ru/login/callback?state={state}&code=old"})
-    assert expired.status_code == 400 and "около минуты" in expired.json()["detail"]
+    expired = http.post("/login/finish", json={"url": f"https://my.itmo.ru/robots.txt?state={state}&code=old"})
+    assert expired.status_code == 400 and "(Code not valid)" in expired.json()["detail"]
+    assert "около минуты" in expired.json()["detail"]
 
 
 def test_commands(setup):

@@ -1,8 +1,10 @@
 """ITMO.ID (Keycloak, realm `itmo`): вход через браузер владельца по коду с PKCE и продление токенов.
 
 Протокол — по исследованию и реализации alllexey-dev/itmo-mcp (MIT, research/auth.md, src/auth/itmo-id.ts):
-публичный клиент `student-personal-cabinet` принимает только свой адрес возврата `https://my.itmo.ru/login/callback`,
-поэтому владелец входит в своём браузере, а адрес страницы после входа (с `code` и `state`) вставляет в плагин.
+публичный клиент `student-personal-cabinet` принимает только адреса возврата на my.itmo.ru, поэтому владелец входит
+в своём браузере, а адрес страницы после входа (с `code` и `state`) вставляет в плагин. Возврат — на
+`https://my.itmo.ru/robots.txt`, а не на `/login/callback`: там сайт my.itmo.ru сам меняет код на токены, и код
+(одноразовый) до плагина уже не доходит; robots.txt — простой текст без скриптов, код остаётся в адресе нетронутым.
 Код живёт около минуты; access token — 30 минут, refresh token — 30 дней и меняется при каждом продлении.
 """
 
@@ -18,7 +20,8 @@ import httpx
 
 ISSUER = "https://id.itmo.ru/auth/realms/itmo"
 CLIENT_ID = "student-personal-cabinet"
-REDIRECT_URI = "https://my.itmo.ru/login/callback"
+REDIRECT_URI = "https://my.itmo.ru/robots.txt"
+RETURN_HOST = "my.itmo.ru"
 SCOPE = "openid profile"
 USER_AGENT = "pulse-itmo (+https://github.com/pulse-assist/pulse-itmo)"
 
@@ -29,6 +32,10 @@ class AuthError(Exception):
 
 class SessionExpired(AuthError):
     """ITMO.ID отверг код или refresh token (invalid_grant): нужно войти заново."""
+
+    def __init__(self, message: str, detail: str = ""):
+        super().__init__(message)
+        self.detail = detail
 
 
 @dataclass
@@ -61,10 +68,9 @@ def authorize_url(state: str, challenge: str) -> str:
 
 
 def parse_callback(url: str) -> tuple[str, str]:
-    """(code, state) из адреса страницы после входа: https://my.itmo.ru/login/callback?state=…&code=…"""
-    text = url.strip()
-    parts = urlsplit(text)
-    if f"{parts.scheme}://{parts.netloc}{parts.path}".rstrip("/") != REDIRECT_URI:
+    """(code, state) из адреса страницы после входа: https://my.itmo.ru/robots.txt?state=…&code=…"""
+    parts = urlsplit(url.strip())
+    if parts.scheme != "https" or parts.netloc != RETURN_HOST:
         raise AuthError("Это не тот адрес: нужен адрес страницы my.itmo.ru после входа, он начинается с "
                         f"{REDIRECT_URI}?")
     query = {k: v[0] for k, v in parse_qs(parts.query + ("&" + parts.fragment if parts.fragment else "")).items()}
@@ -108,9 +114,10 @@ class ItmoIdClient:
             body = {}
         if response.status_code >= 400 or not isinstance(body.get("access_token"), str):
             error = body.get("error") or f"HTTP {response.status_code}"
+            detail = body.get("error_description") or error
             if error == "invalid_grant":
-                raise SessionExpired(f"ITMO.ID отверг {what} — войдите заново")
-            raise AuthError(f"ITMO.ID не выдал токен ({error})")
+                raise SessionExpired(f"ITMO.ID отверг {what} ({detail}) — войдите заново", detail)
+            raise AuthError(f"ITMO.ID не выдал токен ({detail})")
         now = self.now()
         refresh_in = body.get("refresh_expires_in")
         return TokenSet(access_token=body["access_token"], refresh_token=str(body.get("refresh_token") or ""),

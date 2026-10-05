@@ -47,12 +47,12 @@ function renderLogin(error) {
       </div></div>
       <div class="step"><span class="step-n">2</span><div class="step-body">
         <div class="step-title">Скопируйте адрес страницы после входа</div>
-        <div>Браузер откроет my.itmo.ru (страница может показать ошибку — это нормально). Скопируйте адрес из
-             адресной строки: он начинается с <span class="mono">https://my.itmo.ru/login/callback?…</span></div>
+        <div>Браузер откроет my.itmo.ru/robots.txt — страницу с парой строк служебного текста, так и задумано.
+             Скопируйте адрес из адресной строки: он начинается с <span class="mono">https://my.itmo.ru/robots.txt?…</span></div>
       </div></div>
       <div class="step"><span class="step-n">3</span><div class="step-body">
         <div class="step-title">Вставьте его сюда — в течение минуты</div>
-        <form class="paste" id="paste"><input id="url" placeholder="https://my.itmo.ru/login/callback?state=…&code=…" autocomplete="off">
+        <form class="paste" id="paste"><input id="url" placeholder="https://my.itmo.ru/robots.txt?state=…&code=…" autocomplete="off">
           <button class="btn" type="submit">Войти</button></form>
         <div class="hint">Код из адреса действует около минуты; не успели — нажмите «Открыть id.itmo.ru» ещё раз.</div>
         ${error ? `<div class="error">${esc(error)}</div>` : ""}
