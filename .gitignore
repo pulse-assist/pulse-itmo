@@ -5,3 +5,4 @@ __pycache__/
 .plugin-data/
 node_modules/
 .pulse_plugin_sdk/
+dist/
