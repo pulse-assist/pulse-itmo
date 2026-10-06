@@ -4,8 +4,7 @@
 GET /schedule?date_start&date_end&all. Для агентов: pulse itmo schedule|today|status.
 """
 
-from datetime import date, datetime, timedelta
-from zoneinfo import ZoneInfo
+from datetime import date, datetime, timedelta, timezone
 
 from fastapi import Body, HTTPException, Query
 from pulse_plugin import CommandError, Plugin
@@ -14,7 +13,7 @@ from .itmo_id import AuthError, SessionExpired
 from .my_itmo import ApiError, MyItmo, NotLoggedIn
 from .store import Store
 
-MOSCOW = ZoneInfo("Europe/Moscow")
+MOSCOW = timezone(timedelta(hours=3), "MSK")     # без перехода на летнее время с 2014 г.; tzdata не нужна
 WEEKDAYS = ["понедельник", "вторник", "среда", "четверг", "пятница", "суббота", "воскресенье"]
 
 plugin = Plugin()

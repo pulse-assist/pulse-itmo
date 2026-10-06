@@ -1,10 +1,13 @@
 {
   "id": "itmo",
   "name": "my.itmo",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "pulse": ">=1.0",
   "description": "Расписание ИТМО: вход через ITMO.ID в браузере, неделя по дням, команды для агентов",
-  "permissions": ["signals:create", "network"],
+  "permissions": [
+    "signals:create",
+    "network"
+  ],
   "runtime": {
     "kind": "python",
     "entry": "itmo_plugin.app:app",
@@ -12,15 +15,28 @@
     "requirements": "backend/requirements.txt",
     "health": "/health"
   },
-  "ui": { "dist": "ui" },
+  "ui": {
+    "dist": "ui"
+  },
   "menu": [
-    { "id": "schedule", "title": "Расписание ИТМО", "icon": "bi-calendar-week", "page": "index.html" }
+    {
+      "id": "schedule",
+      "title": "Расписание ИТМО",
+      "icon": "bi-calendar-week",
+      "page": "index.html"
+    }
   ],
   "settings": {
-    "show_extra": { "type": "boolean", "title": "Показывать брони аудиторий и физкультуру", "default": false,
-                    "description": "По умолчанию в расписании только учебные пары" }
+    "show_extra": {
+      "type": "boolean",
+      "title": "Показывать брони аудиторий и физкультуру",
+      "default": false,
+      "description": "По умолчанию в расписании только учебные пары"
+    }
   },
-  "skills": ["skills/itmo.md"],
+  "skills": [
+    "skills/itmo.md"
+  ],
   "commands": "commands.json",
   "install": "INSTALL.md"
 }
